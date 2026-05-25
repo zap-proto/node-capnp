@@ -1,7 +1,8 @@
 {
   "name": "capnp",
   "version": "0.5.0",
-  "description": "A wrapper for the C++ Cap'n Proto library",
+  "private": true,
+  "description": "Vendored clone of upstream kentonv/node-capnp — NOT published. Read-only reference for the @zap-proto/zap TypeScript implementation. Do not rename; the upstream `capnp` npm package name is taken by Kenton Varda's project.",
   "keywords": [
     "capnproto",
     "serialization"
