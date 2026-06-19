@@ -52,9 +52,9 @@ if (!{ia32: true, x64: true, arm: true}.hasOwnProperty(arch)) {
 var modPath = platform+ '-'+ arch+ '-v8-'+ v8;
 if (!force) {
 	try {
-		fs.statSync(path.join(__dirname, 'bin', modPath, 'capnp.node'));
+		fs.statSync(path.join(__dirname, 'bin', modPath, 'zap.node'));
 		console.log('`'+ modPath+ '` exists; testing');
-		cp.execFile(process.execPath, ['src/node-capnp/capnp-test'], function(err, stdout, stderr) {
+		cp.execFile(process.execPath, ['src/node-zap/zap-test'], function(err, stdout, stderr) {
 			if (err || stdout.trim() !== 'pass' || stderr) {
 				console.log('Problem with the binary; manual build incoming');
 				build();
@@ -98,8 +98,8 @@ function build() {
 
 // Move it to expected location
 function afterBuild() {
-	var targetPath = path.join(__dirname, 'build', debug ? 'Debug' : 'Release', 'capnp.node');
-	var installPath = path.join(__dirname, 'bin', modPath, 'capnp.node');
+	var targetPath = path.join(__dirname, 'build', debug ? 'Debug' : 'Release', 'zap.node');
+	var installPath = path.join(__dirname, 'bin', modPath, 'zap.node');
 
 	try {
 		fs.mkdirSync(path.join(__dirname, 'bin', modPath));

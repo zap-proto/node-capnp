@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 
 var fs = require("fs");
-var capnp = require("./capnp");
+var zap = require("./zap");
 var assert = require("assert");
 var spawn = require("child_process").spawn;
 
@@ -30,29 +30,29 @@ var goldenFlatBinary;
 var goldenPackedFlatBinary;
 try {
   // Works in Ekam build.
-  goldenBinary = fs.readFileSync("node-capnp/testdata/binary");
-  goldenPackedBinary = fs.readFileSync("node-capnp/testdata/packedbinary");
-  goldenFlatBinary = fs.readFileSync("node-capnp/testdata/flat");
-  goldenPackedFlatBinary = fs.readFileSync("node-capnp/testdata/packedflat");
+  goldenBinary = fs.readFileSync("node-zap/testdata/binary");
+  goldenPackedBinary = fs.readFileSync("node-zap/testdata/packedbinary");
+  goldenFlatBinary = fs.readFileSync("node-zap/testdata/flat");
+  goldenPackedFlatBinary = fs.readFileSync("node-zap/testdata/packedflat");
 } catch (ex) {
   // Works in npm build.
-  goldenBinary = fs.readFileSync("src/node-capnp/testdata/binary");
-  goldenPackedBinary = fs.readFileSync("src/node-capnp/testdata/packedbinary");
-  goldenFlatBinary = fs.readFileSync("src/node-capnp/testdata/flat");
-  goldenPackedFlatBinary = fs.readFileSync("src/node-capnp/testdata/packedflat");
+  goldenBinary = fs.readFileSync("src/node-zap/testdata/binary");
+  goldenPackedBinary = fs.readFileSync("src/node-zap/testdata/packedbinary");
+  goldenFlatBinary = fs.readFileSync("src/node-zap/testdata/flat");
+  goldenPackedFlatBinary = fs.readFileSync("src/node-zap/testdata/packedflat");
 }
 
-var test = require("./test.capnp");
-assert(test === capnp.import(__dirname + "/test.capnp"));
+var test = require("./test.zap");
+assert(test === zap.import(__dirname + "/test.zap"));
 assert(test === require("./test"));
 
-assert("namespace" in capnp.importSystem("capnp/c++.capnp"));
+assert("namespace" in zap.importSystem("capnp/c++.capnp"));
 
-var parsed = capnp.parse(test.TestAllTypes, goldenBinary);
+var parsed = zap.parse(test.TestAllTypes, goldenBinary);
 
-var roundTripped = capnp.serialize(test.TestAllTypes, parsed);
+var roundTripped = zap.serialize(test.TestAllTypes, parsed);
 
-var canon = capnp.bytesToPreorder(test.TestAllTypes, roundTripped);
+var canon = zap.bytesToPreorder(test.TestAllTypes, roundTripped);
 
 assert.equal(goldenBinary.length, roundTripped.length, "Round trip changed size?");
 assert.equal(goldenBinary.toString("base64"), canon.toString("base64"), "Round trip lost data?");
@@ -64,18 +64,18 @@ assert.equal("xyzzy", test.TestConstants.textListConst[1]);
 
 // Test packed serialization/deserialization
 
-var parsedPacked = capnp.parsePacked(test.TestAllTypes, goldenPackedBinary);
-var roundTrippedPacked = capnp.serializePacked(test.TestAllTypes, parsedPacked);
+var parsedPacked = zap.parsePacked(test.TestAllTypes, goldenPackedBinary);
+var roundTrippedPacked = zap.serializePacked(test.TestAllTypes, parsedPacked);
 assert.equal(goldenPackedBinary.length, roundTrippedPacked.length, "Round trip changed size?");
 assert.equal(goldenPackedBinary.toString("base64"), roundTrippedPacked.toString("base64"), "Round trip lost data?");
 
-var parsedFlat = capnp.parse(test.TestAllTypes, goldenFlatBinary, {flat: true});
-var roundTrippedFlat = capnp.serialize(test.TestAllTypes, parsedFlat, {flat: true});
+var parsedFlat = zap.parse(test.TestAllTypes, goldenFlatBinary, {flat: true});
+var roundTrippedFlat = zap.serialize(test.TestAllTypes, parsedFlat, {flat: true});
 assert.equal(goldenFlatBinary.length, roundTrippedFlat.length, "Round trip changed size?");
 assert.equal(goldenFlatBinary.toString("base64"), roundTrippedFlat.toString("base64"), "Round trip lost data?");
 
-var parsedPackedFlat = capnp.parse(test.TestAllTypes, goldenPackedFlatBinary, {packed: true, flat: true});
-var roundTrippedPackedFlat = capnp.serialize(test.TestAllTypes, parsedPackedFlat, {packed: true, flat: true});
+var parsedPackedFlat = zap.parse(test.TestAllTypes, goldenPackedFlatBinary, {packed: true, flat: true});
+var roundTrippedPackedFlat = zap.serialize(test.TestAllTypes, parsedPackedFlat, {packed: true, flat: true});
 assert.equal(goldenPackedFlatBinary.length, roundTrippedPackedFlat.length, "Round trip changed size?");
 assert.equal(goldenPackedFlatBinary.toString("base64"), roundTrippedPackedFlat.toString("base64"), "Round trip lost data?");
 
@@ -92,100 +92,100 @@ console.log("serialization: pass");
 // =======================================================================================
 // Test matchPowerboxQuery
 
-if (capnp.matchPowerboxQuery) {
+if (zap.matchPowerboxQuery) {
 
-var tag1 = capnp.serialize(test.TestAllTypes, {int32Field: 123});
-var tag2 = capnp.serialize(test.TestAllTypes, {int32Field: 321});
-var tag3 = capnp.serialize(test.TestAllTypes, {});
+var tag1 = zap.serialize(test.TestAllTypes, {int32Field: 123});
+var tag2 = zap.serialize(test.TestAllTypes, {int32Field: 321});
+var tag3 = zap.serialize(test.TestAllTypes, {});
 
-assert(capnp.matchPowerboxQuery(tag1, tag1));
-assert(capnp.matchPowerboxQuery(tag2, tag2));
-assert(capnp.matchPowerboxQuery(tag3, tag3));
+assert(zap.matchPowerboxQuery(tag1, tag1));
+assert(zap.matchPowerboxQuery(tag2, tag2));
+assert(zap.matchPowerboxQuery(tag3, tag3));
 
-assert(!capnp.matchPowerboxQuery(tag1, tag2));
-assert(!capnp.matchPowerboxQuery(tag2, tag3));
-assert(!capnp.matchPowerboxQuery(tag3, tag1));
+assert(!zap.matchPowerboxQuery(tag1, tag2));
+assert(!zap.matchPowerboxQuery(tag2, tag3));
+assert(!zap.matchPowerboxQuery(tag3, tag1));
 
-var emptyTag = capnp.serialize(test.TestEmptyStruct, {});
-assert(!capnp.matchPowerboxQuery(emptyTag, tag1));
-assert(!capnp.matchPowerboxQuery(emptyTag, tag2));
-assert(capnp.matchPowerboxQuery(emptyTag, tag3));
-assert(!capnp.matchPowerboxQuery(tag1, emptyTag));
-assert(!capnp.matchPowerboxQuery(tag2, emptyTag));
-assert(capnp.matchPowerboxQuery(tag3, emptyTag));
+var emptyTag = zap.serialize(test.TestEmptyStruct, {});
+assert(!zap.matchPowerboxQuery(emptyTag, tag1));
+assert(!zap.matchPowerboxQuery(emptyTag, tag2));
+assert(zap.matchPowerboxQuery(emptyTag, tag3));
+assert(!zap.matchPowerboxQuery(tag1, emptyTag));
+assert(!zap.matchPowerboxQuery(tag2, emptyTag));
+assert(zap.matchPowerboxQuery(tag3, emptyTag));
 
 // Test comparing pointers.
-var tagStr1 = capnp.serialize(test.TestAllTypes, {textField: "foo"});
-var tagStr2 = capnp.serialize(test.TestAllTypes, {textField: "bar"});
-var tagStr3 = capnp.serialize(test.TestAllTypes, {textField: ""});
-assert(capnp.matchPowerboxQuery(tagStr1, tagStr1));
-assert(capnp.matchPowerboxQuery(tagStr2, tagStr2));
-assert(capnp.matchPowerboxQuery(tagStr3, tagStr3));
-assert(!capnp.matchPowerboxQuery(tagStr1, tagStr2));
-assert(!capnp.matchPowerboxQuery(tagStr2, tagStr3));
-assert(!capnp.matchPowerboxQuery(tagStr3, tagStr1));
-assert(capnp.matchPowerboxQuery(tagStr1, emptyTag));
-assert(capnp.matchPowerboxQuery(tagStr2, emptyTag));
-assert(capnp.matchPowerboxQuery(tagStr3, emptyTag));
-assert(capnp.matchPowerboxQuery(emptyTag, tagStr1));
-assert(capnp.matchPowerboxQuery(emptyTag, tagStr2));
-assert(capnp.matchPowerboxQuery(emptyTag, tagStr3));
+var tagStr1 = zap.serialize(test.TestAllTypes, {textField: "foo"});
+var tagStr2 = zap.serialize(test.TestAllTypes, {textField: "bar"});
+var tagStr3 = zap.serialize(test.TestAllTypes, {textField: ""});
+assert(zap.matchPowerboxQuery(tagStr1, tagStr1));
+assert(zap.matchPowerboxQuery(tagStr2, tagStr2));
+assert(zap.matchPowerboxQuery(tagStr3, tagStr3));
+assert(!zap.matchPowerboxQuery(tagStr1, tagStr2));
+assert(!zap.matchPowerboxQuery(tagStr2, tagStr3));
+assert(!zap.matchPowerboxQuery(tagStr3, tagStr1));
+assert(zap.matchPowerboxQuery(tagStr1, emptyTag));
+assert(zap.matchPowerboxQuery(tagStr2, emptyTag));
+assert(zap.matchPowerboxQuery(tagStr3, emptyTag));
+assert(zap.matchPowerboxQuery(emptyTag, tagStr1));
+assert(zap.matchPowerboxQuery(emptyTag, tagStr2));
+assert(zap.matchPowerboxQuery(emptyTag, tagStr3));
 
 // Note that string comparisons are actually list comparisons. But let's make sure an exact match
 // is required (which is not the case for list-of-structs).
-var tagStr4 = capnp.serialize(test.TestAllTypes, {textField: "oof"});
-assert(!capnp.matchPowerboxQuery(tagStr1, tagStr4));
+var tagStr4 = zap.serialize(test.TestAllTypes, {textField: "oof"});
+assert(!zap.matchPowerboxQuery(tagStr1, tagStr4));
 
 // Test list-of-structs.
-var tagFooBar = capnp.serialize(test.TestAllTypes,
+var tagFooBar = zap.serialize(test.TestAllTypes,
     {structList: [{textField: "foo"}, {textField: "bar"}]});
-var tagBarFoo = capnp.serialize(test.TestAllTypes,
+var tagBarFoo = zap.serialize(test.TestAllTypes,
     {structList: [{textField: "bar"}, {textField: "foo"}]});
-var tagFooOnly = capnp.serialize(test.TestAllTypes,
+var tagFooOnly = zap.serialize(test.TestAllTypes,
     {structList: [{textField: "foo"}]});
-var tagBarOnly = capnp.serialize(test.TestAllTypes,
+var tagBarOnly = zap.serialize(test.TestAllTypes,
     {structList: [{textField: "bar"}]});
-var tagEmptyList = capnp.serialize(test.TestAllTypes,
+var tagEmptyList = zap.serialize(test.TestAllTypes,
     {structList: []});
 
-assert(capnp.matchPowerboxQuery(tagFooBar, tagFooBar));
-assert(capnp.matchPowerboxQuery(tagFooBar, tagBarFoo));
-assert(capnp.matchPowerboxQuery(tagBarFoo, tagFooBar));
-assert(capnp.matchPowerboxQuery(tagFooOnly, tagFooBar));
-assert(capnp.matchPowerboxQuery(tagBarOnly, tagFooBar));
-assert(capnp.matchPowerboxQuery(tagFooOnly, tagBarFoo));
-assert(capnp.matchPowerboxQuery(tagBarOnly, tagBarFoo));
-assert(!capnp.matchPowerboxQuery(tagFooBar, tagFooOnly));
-assert(!capnp.matchPowerboxQuery(tagFooBar, tagBarOnly));
-assert(!capnp.matchPowerboxQuery(tagBarFoo, tagFooOnly));
-assert(!capnp.matchPowerboxQuery(tagBarFoo, tagBarOnly));
+assert(zap.matchPowerboxQuery(tagFooBar, tagFooBar));
+assert(zap.matchPowerboxQuery(tagFooBar, tagBarFoo));
+assert(zap.matchPowerboxQuery(tagBarFoo, tagFooBar));
+assert(zap.matchPowerboxQuery(tagFooOnly, tagFooBar));
+assert(zap.matchPowerboxQuery(tagBarOnly, tagFooBar));
+assert(zap.matchPowerboxQuery(tagFooOnly, tagBarFoo));
+assert(zap.matchPowerboxQuery(tagBarOnly, tagBarFoo));
+assert(!zap.matchPowerboxQuery(tagFooBar, tagFooOnly));
+assert(!zap.matchPowerboxQuery(tagFooBar, tagBarOnly));
+assert(!zap.matchPowerboxQuery(tagBarFoo, tagFooOnly));
+assert(!zap.matchPowerboxQuery(tagBarFoo, tagBarOnly));
 
-assert(capnp.matchPowerboxQuery(tagFooBar, emptyTag));
-assert(capnp.matchPowerboxQuery(tagFooOnly, emptyTag));
-assert(capnp.matchPowerboxQuery(tagBarOnly, emptyTag));
-assert(capnp.matchPowerboxQuery(emptyTag, tagFooBar));
-assert(capnp.matchPowerboxQuery(emptyTag, tagFooOnly));
-assert(capnp.matchPowerboxQuery(emptyTag, tagBarOnly));
+assert(zap.matchPowerboxQuery(tagFooBar, emptyTag));
+assert(zap.matchPowerboxQuery(tagFooOnly, emptyTag));
+assert(zap.matchPowerboxQuery(tagBarOnly, emptyTag));
+assert(zap.matchPowerboxQuery(emptyTag, tagFooBar));
+assert(zap.matchPowerboxQuery(emptyTag, tagFooOnly));
+assert(zap.matchPowerboxQuery(emptyTag, tagBarOnly));
 
-assert(!capnp.matchPowerboxQuery(tagFooBar, tagEmptyList));
-assert(!capnp.matchPowerboxQuery(tagFooOnly, tagEmptyList));
-assert(!capnp.matchPowerboxQuery(tagBarOnly, tagEmptyList));
-assert(capnp.matchPowerboxQuery(tagEmptyList, tagFooBar));
-assert(capnp.matchPowerboxQuery(tagEmptyList, tagFooOnly));
-assert(capnp.matchPowerboxQuery(tagEmptyList, tagBarOnly));
+assert(!zap.matchPowerboxQuery(tagFooBar, tagEmptyList));
+assert(!zap.matchPowerboxQuery(tagFooOnly, tagEmptyList));
+assert(!zap.matchPowerboxQuery(tagBarOnly, tagEmptyList));
+assert(zap.matchPowerboxQuery(tagEmptyList, tagFooBar));
+assert(zap.matchPowerboxQuery(tagEmptyList, tagFooOnly));
+assert(zap.matchPowerboxQuery(tagEmptyList, tagBarOnly));
 
 // Test list-of-pointers.
-var tagStrList1 = capnp.serialize(test.TestAllTypes, {textList: ["foo", "bar"]});
-var tagStrList2 = capnp.serialize(test.TestAllTypes, {textList: ["bar", "foo"]});
-var tagStrList3 = capnp.serialize(test.TestAllTypes, {textList: ["foo"]});
-var tagStrList4 = capnp.serialize(test.TestAllTypes, {textList: ["foo", null]});
+var tagStrList1 = zap.serialize(test.TestAllTypes, {textList: ["foo", "bar"]});
+var tagStrList2 = zap.serialize(test.TestAllTypes, {textList: ["bar", "foo"]});
+var tagStrList3 = zap.serialize(test.TestAllTypes, {textList: ["foo"]});
+var tagStrList4 = zap.serialize(test.TestAllTypes, {textList: ["foo", null]});
 
-assert(capnp.matchPowerboxQuery(tagStrList1, tagStrList1));
-assert(capnp.matchPowerboxQuery(tagStrList2, tagStrList2));
-assert(!capnp.matchPowerboxQuery(tagStrList1, tagStrList2));
-assert(!capnp.matchPowerboxQuery(tagStrList2, tagStrList1));
-assert(!capnp.matchPowerboxQuery(tagStrList3, tagStrList1));
-assert(capnp.matchPowerboxQuery(tagStrList4, tagStrList1));
+assert(zap.matchPowerboxQuery(tagStrList1, tagStrList1));
+assert(zap.matchPowerboxQuery(tagStrList2, tagStrList2));
+assert(!zap.matchPowerboxQuery(tagStrList1, tagStrList2));
+assert(!zap.matchPowerboxQuery(tagStrList2, tagStrList1));
+assert(!zap.matchPowerboxQuery(tagStrList3, tagStrList1));
+assert(zap.matchPowerboxQuery(tagStrList4, tagStrList1));
 
 console.log("matchPowerboxQuery: pass");
 
@@ -247,8 +247,8 @@ child.stdio[1].once("readable", function() {
   child.stdio[1].resume();  // ignore all input
 
   doFiber(function() {
-    var conn = capnp.connect("127.0.0.1:21311");
-    var Calculator = capnp.import("capnp-samples/calculator.capnp").Calculator;
+    var conn = zap.connect("127.0.0.1:21311");
+    var Calculator = zap.import("capnp-samples/calculator.capnp").Calculator;
     var calc = conn.restore(null, Calculator);
 
     var add = calc.getOperator("add").func;
@@ -264,7 +264,7 @@ child.stdio[1].once("readable", function() {
     };
 
     function usePow(pow) {
-      var localCap = new capnp.Capability(pow, Calculator.Function);
+      var localCap = new zap.Capability(pow, Calculator.Function);
       assert.equal(9, wait(localCap.call([3, 2])).value);
       assert(!pow.closed);
       localCap.close();
@@ -308,7 +308,7 @@ child.stdio[1].once("readable", function() {
 
     // Try wrapping a promise as a capability -- calls are queued until resolution.
     var resolvePromisedCalc;
-    var promisedCalc = new capnp.Capability(new Promise(function (resolve, reject) {
+    var promisedCalc = new zap.Capability(new Promise(function (resolve, reject) {
       resolvePromisedCalc = resolve;
     }), Calculator);
 
@@ -322,7 +322,7 @@ child.stdio[1].once("readable", function() {
 
     // Like above, but reject the promise so queued calls fail.
     var rejectPromisedCalc;
-    promisedCalc = new capnp.Capability(new Promise(function (resolve, reject) {
+    promisedCalc = new zap.Capability(new Promise(function (resolve, reject) {
       rejectPromisedCalc = reject;
     }), Calculator);
 

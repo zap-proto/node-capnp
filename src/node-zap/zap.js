@@ -26,25 +26,25 @@ var fs = require("fs");
 var v8 = "v8-"+ /[0-9]+\.[0-9]+/.exec(process.versions.v8)[0];
 var modPath = path.join(
     __dirname, "../../bin", process.platform+ "-" + process.arch + "-" + v8,
-    "capnp");
+    "zap");
 try {
   fs.statSync(modPath + ".node");
 } catch (ex) {
   // No binary!
 
-  // Also try just "capnp.node". (Mainly for use when building with Ekam rather
+  // Also try just "zap.node". (Mainly for use when building with Ekam rather
   // than npm.)
-  modPath = "./capnp.node";
+  modPath = "./zap.node";
   try {
-    fs.statSync(path.join(__dirname, "capnp.node"));
+    fs.statSync(path.join(__dirname, "zap.node"));
   } catch (ex) {
     // Give up.
     throw new Error(
-        "`capnp.node` is missing. Try reinstalling `node-capnp`?");
+        "`zap.node` is missing. Try reinstalling `node-zap`?");
   }
 }
 
-var v8capnp = require(modPath);
+var v8zap = require(modPath);
 
 var importPath = [];
 for (var i in module.paths) {
@@ -58,26 +58,26 @@ if ("NODE_PATH" in process.env) {
   }
 }
 
-// Also include standard places where .capnp files are installed.
+// Also include standard places where .zap files are installed.
 importPath.push("/usr/local/include");
 importPath.push("/usr/include");
 
 exports.import = function (filename) {
-  return v8capnp.import(filename, filename, importPath);
+  return v8zap.import(filename, filename, importPath);
 }
 
 exports.importSystem = function (filename) {
   for (var i in importPath) {
     var candidate = path.join(importPath[i], filename);
     if (fs.existsSync(candidate)) {
-      return v8capnp.import(filename, candidate, importPath);
+      return v8zap.import(filename, candidate, importPath);
     }
   }
-  throw new Error("Cap'n Proto schema not found in module path: " + filename);
+  throw new Error("Zap schema not found in module path: " + filename);
 }
 
-require.extensions[".capnp"] = function (module, filename) {
-  module.exports = v8capnp.import(filename, filename, importPath);
+require.extensions[".zap"] = function (module, filename) {
+  module.exports = v8zap.import(filename, filename, importPath);
 }
 
 function makeRemotePromise(promise, pipeline) {
@@ -86,7 +86,7 @@ function makeRemotePromise(promise, pipeline) {
   }
 
   promise.cancel = function () {
-    v8capnp.cancel(pipeline);
+    v8zap.cancel(pipeline);
     closeAll(pipeline);
     promise.then(function (response) {
       closeAll(response);
@@ -128,7 +128,7 @@ function settleCaps(pipeline, final) {
           // Luckily, fmember has NOT been passed to application code yet. So we can actually close
           // it, and then replace the slot in the parent object. Application code will never know
           // the difference. Hah!
-          v8capnp.dup2(fmember, pmember);
+          v8zap.dup2(fmember, pmember);
           fmember.close();
           final[name] = pmember;
         }
@@ -148,14 +148,14 @@ function settleCaps(pipeline, final) {
 
 function makeMethod(cap, method) {
   return function () {
-    var req = v8capnp.request(cap, method);
-    v8capnp.fromJs(req, Array.prototype.slice.call(arguments, 0), LocalCapWrapper);
+    var req = v8zap.request(cap, method);
+    v8zap.fromJs(req, Array.prototype.slice.call(arguments, 0), LocalCapWrapper);
     var pipeline;
     var promise = new Promise(function (resolve, reject) {
-      pipeline = v8capnp.send(req, resolve, reject, Capability);
+      pipeline = v8zap.send(req, resolve, reject, Capability);
     }).then(function (response) {
-      var result = v8capnp.toJs(response, Capability);
-      v8capnp.release(response);
+      var result = v8zap.toJs(response, Capability);
+      v8zap.release(response);
       settleCaps(pipeline, result);
       return result;
     });
@@ -169,8 +169,8 @@ function wrapLocalMethod(self, method) {
     // We start with Promise.resolve().then(...) so that any exceptions thrown immediately
     // propagate through the promise chain.
     Promise.resolve().then(function () {
-      var params = v8capnp.toJsParams(request, Capability);
-      v8capnp.releaseParams(request);
+      var params = v8zap.toJsParams(request, Capability);
+      v8zap.releaseParams(request);
       return method.apply(self, params);
     }).then(function (results) {
       if (typeof results !== "object") {
@@ -181,12 +181,12 @@ function wrapLocalMethod(self, method) {
           results = [results];
         }
       }
-      v8capnp.fromJs(v8capnp.getResults(request), results, LocalCapWrapper);
-      v8capnp.return_(request);
+      v8zap.fromJs(v8zap.getResults(request), results, LocalCapWrapper);
+      v8zap.return_(request);
     }).catch(function (error) {
-      v8capnp.throw_(request, error);
+      v8zap.throw_(request, error);
     }).catch(function (error) {
-      console.error("Cap'n Proto v8 bug when returning from incoming method call:", error);
+      console.error("Zap v8 bug when returning from incoming method call:", error);
     });
   }
 }
@@ -211,35 +211,35 @@ function LocalCapWrapper(obj) {
 
 function Capability(native, schema) {
   // If `native` is actually a local object, wrap it as a capability.
-  if (!v8capnp.isCap(native)) {
+  if (!v8zap.isCap(native)) {
     if (native instanceof Promise) {
       // Oh, it's a promise. Wrap it in a capability.
-      var promisedCap = v8capnp.newPromisedCap(schema);
+      var promisedCap = v8zap.newPromisedCap(schema);
       var fulfiller = promisedCap.fulfiller;
-      native.then(v8capnp.fulfillPromisedCap.bind(this, fulfiller))
-            .catch(v8capnp.rejectPromisedCap.bind(this, fulfiller));
+      native.then(v8zap.fulfillPromisedCap.bind(this, fulfiller))
+            .catch(v8zap.rejectPromisedCap.bind(this, fulfiller));
       native = promisedCap.cap;
     } else {
       // Local object.
-      native = v8capnp.newCap(schema, new LocalCapWrapper(native));
+      native = v8zap.newCap(schema, new LocalCapWrapper(native));
     }
   }
 
-  v8capnp.setNative(this, native);
+  v8zap.setNative(this, native);
 
   if (schema) {
-    var methods = v8capnp.methods(schema);
+    var methods = v8zap.methods(schema);
 
     for (var name in methods) {
       this[name] = makeMethod(native, methods[name]);
     }
   }
 
-  this.close = function () { v8capnp.close(native); this.closed = true; }
+  this.close = function () { v8zap.close(native); this.closed = true; }
   this.closed = false;
-  this.clone = function () { return new Capability(v8capnp.dup(native), schema); }
+  this.clone = function () { return new Capability(v8zap.dup(native), schema); }
   this.castAs = function (newSchema) {
-    return new Capability(v8capnp.castAs(native, newSchema), newSchema);
+    return new Capability(v8zap.castAs(native, newSchema), newSchema);
   }
   this.schema = schema;
 
@@ -248,31 +248,31 @@ function Capability(native, schema) {
 
 function Connection(native) {
   this.restore = function (objectId, schema) {
-    return new Capability(v8capnp.restore(native, objectId, schema), schema);
+    return new Capability(v8zap.restore(native, objectId, schema), schema);
   }
 
   this.close = function () {
-    v8capnp.disconnect(native);
+    v8zap.disconnect(native);
   }
 }
 
 exports.connect = function (addr, bootstrapCap) {
-  if (bootstrapCap && !v8capnp.isCap(bootstrapCap)) {
+  if (bootstrapCap && !v8zap.isCap(bootstrapCap)) {
     throw new Error("Invalid bootstrap capability.");
   }
 
   if (addr.capabilityStreamFd) {
-    return new Connection(v8capnp.connectUnixFd(addr.capabilityStreamFd, bootstrapCap));
+    return new Connection(v8zap.connectUnixFd(addr.capabilityStreamFd, bootstrapCap));
   } else {
-    return new Connection(v8capnp.connect(addr, bootstrapCap));
+    return new Connection(v8zap.connect(addr, bootstrapCap));
   }
 }
 
-exports.expectedSizeFromPrefix = v8capnp.expectedSizeFromPrefix;
+exports.expectedSizeFromPrefix = v8zap.expectedSizeFromPrefix;
 
 exports.parse = function (schema, buffer, options) {
-  var reader = v8capnp.fromBytes(buffer, schema, options || {});
-  return v8capnp.toJs(reader, Capability);
+  var reader = v8zap.fromBytes(buffer, schema, options || {});
+  return v8zap.toJs(reader, Capability);
 }
 
 exports.parsePacked = function (schema, buffer) {
@@ -281,9 +281,9 @@ exports.parsePacked = function (schema, buffer) {
 }
 
 exports.serialize = function (schema, value, options) {
-  var builder = v8capnp.newBuilder(schema);
-  v8capnp.fromJs(builder, value, LocalCapWrapper);
-  return v8capnp.toBytes(builder, options || {});
+  var builder = v8zap.newBuilder(schema);
+  v8zap.fromJs(builder, value, LocalCapWrapper);
+  return v8zap.toBytes(builder, options || {});
 }
 
 exports.serializePacked = function (schema, value) {
@@ -295,10 +295,10 @@ exports.Capability = Capability;
 
 exports.bytesToPreorder = function(schema, buf, options) {
   // Parse, copy, serialize, to get a preorder traversal.
-  var reader = v8capnp.fromBytes(buf, schema, options || {});
-  var builder = v8capnp.copyBuilder(reader);
-  return v8capnp.toBytes(builder, options || {});
+  var reader = v8zap.fromBytes(buf, schema, options || {});
+  var builder = v8zap.copyBuilder(reader);
+  return v8zap.toBytes(builder, options || {});
 }
 
-if (v8capnp.matchPowerboxQuery) exports.matchPowerboxQuery = v8capnp.matchPowerboxQuery;
-if (v8capnp.chacha20) exports.chacha20 = v8capnp.chacha20;
+if (v8zap.matchPowerboxQuery) exports.matchPowerboxQuery = v8zap.matchPowerboxQuery;
+if (v8zap.chacha20) exports.chacha20 = v8zap.chacha20;

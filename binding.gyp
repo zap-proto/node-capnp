@@ -1,8 +1,8 @@
 {
   'targets': [
     {
-      'target_name': 'capnp',
-      'sources': ['src/node-capnp/capnp.cc'],
+      'target_name': 'zap',
+      'sources': ['src/node-zap/zap.cc'],
       'libraries': ['-lkj', '-lkj-async', '-lcapnp', '-lcapnpc', '-lcapnp-rpc'],
       'cflags_cc': ['-std=c++14'],
       'cflags_cc!': ['-fno-rtti', '-fno-exceptions'],

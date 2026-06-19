@@ -1,4 +1,4 @@
-declare module Capnp {
+declare module Zap {
   type Id = string;
 
   abstract class StructSchema<Builder, Reader> {
@@ -42,4 +42,4 @@ declare module Capnp {
   function serialize<Builder, Reader>(type: StructSchema<Builder, Reader>, builder: Builder): Buffer;
   function connect(addr: string): Connection;
 }
-export default Capnp;
+export default Zap;
