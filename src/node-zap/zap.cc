@@ -56,7 +56,7 @@
 #include <sodium/crypto_stream_chacha20.h>
 #endif
 
-namespace v8capnp {
+namespace v8zap {
 namespace {  // so we get warnings if anything declared in this file is left undefined...
 
 typedef unsigned char byte;
@@ -949,7 +949,7 @@ public:
       v8::Isolate* isolate = v8::Isolate::GetCurrent();
       v8::Local<v8::Value> native;
       if (obj->GetPrivate(isolate->GetCurrentContext(),
-              v8::Private::ForApi(isolate, newSymbol("capnp::native"))).ToLocal(&native) &&
+              v8::Private::ForApi(isolate, newSymbol("zap::native"))).ToLocal(&native) &&
           !native->IsUndefined()) {
         return tryUnwrap<T>(native);
       } else {
@@ -963,7 +963,7 @@ public:
     KJ_IF_MAYBE(result, tryUnwrap<T>(hdl)) {
       return *result;
     } else {
-      auto message = kj::str("Type error (in Cap'n Proto glue).  Expected: ", typeid(T).name());
+      auto message = kj::str("Type error (in Zap glue).  Expected: ", typeid(T).name());
       throwException(v8::Exception::TypeError(newString(message.cStr())));
       return nullptr;
     }
@@ -1036,9 +1036,9 @@ v8::Local<v8::Value> wrapBuffer(kj::Array<T>&& array) {
 }
 
 // =======================================================================================
-// Cap'n Proto bindings
+// Zap bindings
 
-struct CapnpContext {
+struct ZapContext {
   // Shared context initialized when the module starts up.  This gets passed to each function as
   // the "data".
 
@@ -1056,7 +1056,7 @@ struct CapnpContext {
   kj::Vector<kj::Array<kj::String>> searchPaths;
   kj::Vector<kj::Array<kj::StringPtr>> searchPathPtrs;
 
-  CapnpContext()
+  ZapContext()
     : llaiop(uv_default_loop()),
       aiop(kj::newAsyncIoProvider(llaiop)) {}
 };
@@ -1073,15 +1073,15 @@ void setNative(const v8::FunctionCallbackInfo<v8::Value>& args) {
     v8::Isolate* isolate = v8::Isolate::GetCurrent();
     v8::Object::Cast(*args[0])->SetPrivate(
         isolate->GetCurrentContext(),
-        v8::Private::ForApi(isolate, newSymbol("capnp::native")),
+        v8::Private::ForApi(isolate, newSymbol("zap::native")),
         args[1]);
   }
 }
 
-v8::Local<v8::Value> valueToJs(CapnpContext& context, capnp::DynamicValue::Reader value,
+v8::Local<v8::Value> valueToJs(ZapContext& context, capnp::DynamicValue::Reader value,
                                 capnp::Type type, v8::Local<v8::Value> capConstructor);
 
-v8::Local<v8::Value> schemaToObject(capnp::ParsedSchema schema, CapnpContext& context,
+v8::Local<v8::Value> schemaToObject(capnp::ParsedSchema schema, ZapContext& context,
                                      v8::Local<v8::Value> wrappedContext) {
   auto proto = schema.getProto();
   if (proto.isConst()) {
@@ -1113,7 +1113,7 @@ void import(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // The returned schema is an object with members corresponding to nested schemas.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_STACK_STR(displayName, args[0], 128);
   KJV8_STACK_STR(diskPath, args[1], 128);
 
@@ -1153,7 +1153,7 @@ void import(const v8::FunctionCallbackInfo<v8::Value>& args) {
 }
 
 void enumerateMethods(capnp::InterfaceSchema schema, v8::Local<v8::Object> methodMap,
-                      CapnpContext& context, std::set<uint64_t>& seen) {
+                      ZapContext& context, std::set<uint64_t>& seen) {
   auto proto = schema.getProto();
   auto jsContext = v8::Isolate::GetCurrent()->GetCurrentContext();
   if (seen.insert(proto.getId()).second) {
@@ -1174,7 +1174,7 @@ void methods(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Given an interface schema, returns the list of methods.  The returned list is memoized.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::Schema, schema, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -1319,7 +1319,7 @@ void newBuilder(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Given a struct schema, returns a new builder for that type (backed by MallocMessageBuilder).
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::Schema, schema, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -1335,7 +1335,7 @@ void copyBuilder(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Copy the contents of a builder or reader into a new builder.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP_READER(reader, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -1347,7 +1347,7 @@ void structToString(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // structToString(builder OR reader) -> String
   //
   // Converts a struct builder or reader (or request or response) to a human-readable string
-  // based on Cap'n Proto text format.
+  // based on Zap text format.
 
   KJV8_UNWRAP_READER(reader, args[0]);
 
@@ -1359,7 +1359,7 @@ void structToString(const v8::FunctionCallbackInfo<v8::Value>& args) {
 // -----------------------------------------------------------------------------
 
 struct FromJsConverter {
-  CapnpContext& context;
+  ZapContext& context;
   v8::Local<v8::Value> contextHandle;
   v8::Local<v8::Function> localCapType;
 
@@ -1632,7 +1632,7 @@ void fromJs(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // that would be appropriate to pass to `newCap`.  Normally this means wrapping each method to
   // take an RPC request as its input.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP_BUILDER(builder, args[0]);
   v8::Local<v8::Value> jsValue = args[1];
 
@@ -1671,11 +1671,11 @@ void fromJs(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 // -----------------------------------------------------------------------------
 
-bool fieldToJs(CapnpContext& context, v8::Local<v8::Object> object,
+bool fieldToJs(ZapContext& context, v8::Local<v8::Object> object,
                capnp::DynamicStruct::Reader reader, capnp::StructSchema::Field field,
                v8::Local<v8::Value> capConstructor);
 
-v8::Local<v8::Value> valueToJs(CapnpContext& context, capnp::DynamicValue::Reader value,
+v8::Local<v8::Value> valueToJs(ZapContext& context, capnp::DynamicValue::Reader value,
                                 capnp::Type type, v8::Local<v8::Value> capConstructor) {
   auto isolate = v8::Isolate::GetCurrent();
   v8::EscapableHandleScope scope(isolate);
@@ -1796,7 +1796,7 @@ v8::Local<v8::Value> valueToJs(CapnpContext& context, capnp::DynamicValue::Reade
   KJ_FAIL_ASSERT("Unimplemented DynamicValue type.");
 }
 
-bool fieldToJs(CapnpContext& context, v8::Local<v8::Object> object,
+bool fieldToJs(ZapContext& context, v8::Local<v8::Object> object,
                capnp::DynamicStruct::Reader reader, capnp::StructSchema::Field field,
                v8::Local<v8::Value> capConstructor) {
   auto isolate = v8::Isolate::GetCurrent();
@@ -1832,7 +1832,7 @@ void toJs(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // it is a constructor to use to build wrappers around capabilities in the object.  The
   // constructor will be passed the capability and its schema as parameters.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP_READER(reader, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -1846,7 +1846,7 @@ void toJsParams(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // Like toJs(), but interprets the input as a method parameter struct and produces a parameter
   // array from it.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP_READER(reader, args[0]);
 
   auto isolate = args.GetIsolate();
@@ -1880,7 +1880,7 @@ void toJsParams(const v8::FunctionCallbackInfo<v8::Value>& args) {
 void expectedSizeFromPrefix(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // expectedSizeFromPrefix(buffer) -> int
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
 
   v8::Local<v8::Value> bufferHandle = args[0];
   KJV8_UNWRAP_BUFFER(buffer, bufferHandle);
@@ -1906,7 +1906,7 @@ void expectedSizeFromPrefix(const v8::FunctionCallbackInfo<v8::Value>& args) {
 void fromBytes(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // fromBytes(buffer, schema, options) -> reader
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
 
   v8::Local<v8::Value> bufferHandle = args[0];
   KJV8_UNWRAP_BUFFER(buffer, bufferHandle);
@@ -1970,7 +1970,7 @@ void fromBytes(const v8::FunctionCallbackInfo<v8::Value>& args) {
     v8::Isolate* isolate = v8::Isolate::GetCurrent();
     wrapper->SetPrivate(
         isolate->GetCurrentContext(),
-        v8::Private::ForApi(isolate, newSymbol("capnp::buffer")),
+        v8::Private::ForApi(isolate, newSymbol("zap::buffer")),
         bufferHandle);
     return wrapper;
   });
@@ -2076,7 +2076,7 @@ void connect(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // Connect to the given address using the two-party protocol, exporting a bootstrap capability if
   // given one.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_STACK_STR(address, args[0], 64);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -2103,7 +2103,7 @@ void connectUnixFd(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // sending it an FD. Specifically, create a new socketpair, and send one end of the pair over
   // the existing socket.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   int fd = check(args[0]->IntegerValue(v8::Isolate::GetCurrent()->GetCurrentContext()));
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -2175,7 +2175,7 @@ void restore(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // Restore a SturdyRef from the other end of a two-party connection.  objectId may be a string,
   // reader, or builder.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(ConnectionWrapper, connectionWrapper, args[0]);
   bool isNullRef = args[1]->IsNull();
   auto ref = toKjString(args[1]);  // TODO(soon):  Allow struct reader.
@@ -2199,7 +2199,7 @@ void castAs(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Reinterpret the capability as implementing a different interface.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::DynamicCapability::Client, cap, args[0]);
   KJV8_UNWRAP(capnp::Schema, schema, args[1]);
 
@@ -2216,7 +2216,7 @@ void schemaFor(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // Get the schema for a capability.  Unlike with import(), the returned object does NOT contain
   // nested schemas, though it can be passed to methods() to obtain a method list.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::DynamicCapability::Client, cap, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -2259,7 +2259,7 @@ void dupCap(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Return a new reference to the given cap which must be separately close()ed.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::DynamicCapability::Client, cap, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -2288,7 +2288,7 @@ void request(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Start a new request.  Returns the request builder, which can also be passed to send().
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::DynamicCapability::Client, cap, args[0]);
   KJV8_UNWRAP(capnp::InterfaceSchema::Method, method, args[1]);
 
@@ -2297,10 +2297,10 @@ void request(const v8::FunctionCallbackInfo<v8::Value>& args) {
   });
 }
 
-void pipelineToJs(CapnpContext& context, capnp::DynamicStruct::Pipeline&& pipeline,
+void pipelineToJs(ZapContext& context, capnp::DynamicStruct::Pipeline&& pipeline,
                   v8::Local<v8::Object> js, v8::Local<v8::Value> capConstructor);
 
-v8::Local<v8::Object> pipelineStructFieldToJs(CapnpContext& context,
+v8::Local<v8::Object> pipelineStructFieldToJs(ZapContext& context,
                                                capnp::DynamicStruct::Pipeline& pipeline,
                                                capnp::StructSchema::Field field,
                                                v8::Local<v8::Value> capConstructor) {
@@ -2310,7 +2310,7 @@ v8::Local<v8::Object> pipelineStructFieldToJs(CapnpContext& context,
   return fieldValue;
 }
 
-void pipelineToJs(CapnpContext& context, capnp::DynamicStruct::Pipeline&& pipeline,
+void pipelineToJs(ZapContext& context, capnp::DynamicStruct::Pipeline&& pipeline,
                   v8::Local<v8::Object> js, v8::Local<v8::Value> capConstructor) {
   auto isolate = v8::Isolate::GetCurrent();
   v8::HandleScope scope(isolate);
@@ -2384,7 +2384,7 @@ void send(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // CapType is the constructor for a capability wrapper; see toJs().
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(ClientRequest, request, args[0]);
 
   if (!args[1]->IsFunction() || !args[2]->IsFunction()) {
@@ -2454,9 +2454,9 @@ void cancel(const v8::FunctionCallbackInfo<v8::Value>& args) {
 class LocalCap final: public capnp::DynamicCapability::Server {
 public:
   LocalCap(capnp::InterfaceSchema schema, v8::Local<v8::Object> object,
-           CapnpContext& capnpContext, v8::Local<v8::Value> capnpContextHandle)
+           ZapContext& zapContext, v8::Local<v8::Value> zapContextHandle)
       : capnp::DynamicCapability::Server(schema),
-        object(object), capnpContext(capnpContext), capnpContextHandle(capnpContextHandle) {}
+        object(object), zapContext(zapContext), zapContextHandle(zapContextHandle) {}
 
   ~LocalCap() {
     // Call the object's close() method if it has one, so that it can react to the handle being
@@ -2495,15 +2495,15 @@ public:
     request.context = context;
     request.params = context.getParams();
 
-    v8::Local<v8::Value> arg = capnpContext.wrapper.wrapCopy(kj::mv(request));
+    v8::Local<v8::Value> arg = zapContext.wrapper.wrapCopy(kj::mv(request));
     node::MakeCallback(scope.GetIsolate(), object.get(), func, 1, &arg);
     return kj::mv(paf.promise);
   }
 
 private:
   OwnHandle<v8::Object> object;
-  CapnpContext& capnpContext;
-  OwnHandle<v8::Value> capnpContextHandle;
+  ZapContext& zapContext;
+  OwnHandle<v8::Value> zapContextHandle;
 };
 
 capnp::DynamicCapability::Client FromJsConverter::fromLocalCap(
@@ -2520,7 +2520,7 @@ void newCap(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // If `obj` is actually a native cap, this method just returns it.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::Schema, schema, args[0]);
   if (!schema.getProto().isInterface()) {
     KJV8_TYPE_ERROR(schema, capnp::InterfaceSchema);
@@ -2543,7 +2543,7 @@ void newPromisedCap(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // Creates a capability whose endpoint is not yet known. Calls are held in a queue until
   // `fulfiller` is fulfilled via `fulfillPromisedCap` or `rejectPromisedCap`.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(capnp::Schema, schema, args[0]);
   if (!schema.getProto().isInterface()) {
     KJV8_TYPE_ERROR(schema, capnp::InterfaceSchema);
@@ -2572,7 +2572,7 @@ void fulfillPromisedCap(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Fulfills a promise created by a previous call to `newPromisedCap()`.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(kj::Own<kj::PromiseFulfiller<capnp::Capability::Client>>, fulfiller, args[0]);
   KJV8_UNWRAP(capnp::DynamicCapability::Client, cap, args[1]);
 
@@ -2594,7 +2594,7 @@ void rejectPromisedCap(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Rejects a promise created by a previous call to `newPromisedCap()`.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(kj::Own<kj::PromiseFulfiller<capnp::Capability::Client>>, fulfiller, args[0]);
 
   liftKj(args, [&]() -> void {
@@ -2634,7 +2634,7 @@ void getResults(const v8::FunctionCallbackInfo<v8::Value>& args) {
   //
   // Get the results builder for the giver request object.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP(ServerRequest, request, args[0]);
 
   liftKj(args, [&]() -> v8::Local<v8::Value> {
@@ -2831,14 +2831,14 @@ bool matchPowerboxQuery(capnp::AnyPointer::Reader query, capnp::AnyPointer::Read
 void matchPowerboxQuery(const v8::FunctionCallbackInfo<v8::Value>& args) {
   // matchPowerboxQuery(queryBuffer, candidateBuffer) -> bool
   //
-  // Decodes queryBuffer and candidateBuffer as capnp messages and returns true if the query
+  // Decodes queryBuffer and candidateBuffer as zap messages and returns true if the query
   // "matches" the candidate according to Sandstorm's powerbox query tag matching algorithm. See
-  // PowerboxDescriptor::Tag::value in sandstorm/powerbox.capnp for full details of the algorithm.
+  // PowerboxDescriptor::Tag::value in sandstorm/powerbox.zap for full details of the algorithm.
   // The idea here is that the two parameters are AnyPointer values from Tag::value, which in
-  // node-capnp are normally represented as byte arrays. Note that the order of the parameters
+  // node-zap are normally represented as byte arrays. Note that the order of the parameters
   // is important, particularly in the case of struct list matching.
 
-  KJV8_UNWRAP(CapnpContext, context, args.Data());
+  KJV8_UNWRAP(ZapContext, context, args.Data());
   KJV8_UNWRAP_BUFFER(queryBuffer, args[0]);
   KJV8_UNWRAP_BUFFER(candidateBuffer, args[1]);
 
@@ -2912,7 +2912,7 @@ void catchSegfaults() {
 // -----------------------------------------------------------------------------
 
 void init(v8::Local<v8::Object> exports) {
-  CapnpContext* context = new CapnpContext;
+  ZapContext* context = new ZapContext;
   auto wrappedContext = context->wrapper.wrap(context);
 
   auto isolate = v8::Isolate::GetCurrent();
@@ -2968,6 +2968,6 @@ void init(v8::Local<v8::Object> exports) {
 }
 
 }  // namespace
-}  // namespace v8capnp
+}  // namespace v8zap
 
-NODE_MODULE(capnp, v8capnp::init)
+NODE_MODULE(zap, v8zap::init)

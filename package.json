@@ -1,13 +1,15 @@
 {
-  "name": "capnp",
+  "name": "zap",
   "version": "0.5.0",
   "private": true,
-  "description": "Vendored clone of upstream kentonv/node-capnp — NOT published. Read-only reference for the @zap-proto/zap TypeScript implementation. Do not rename; the upstream `capnp` npm package name is taken by Kenton Varda's project.",
+  "description": "ZAP serialization + RPC bindings for Node.js (github.com/zap-proto). Native addon binding the ZAP runtime. NOTE: historically derived from Kenton Varda's node-capnp; the underlying C++ library it links against is the upstream Cap'n Proto OSS dependency.",
   "keywords": [
-    "capnproto",
-    "serialization"
+    "zap",
+    "zap-proto",
+    "serialization",
+    "rpc"
   ],
-  "homepage": "http://capnproto.org",
+  "homepage": "https://github.com/zap-proto/node-zap",
   "author": {
     "name": "Kenton Varda",
     "email": "kenton@sandstorm.io",
@@ -19,15 +21,15 @@
       "email": "jparyani@gmail.com"
     }
   ],
-  "main": "src/node-capnp/capnp.js",
-  "types": "src/node-capnp/capnp.d.ts",
+  "main": "src/node-zap/zap.js",
+  "types": "src/node-zap/zap.d.ts",
   "scripts": {
     "install": "node ./build.js",
-    "test": "node src/node-capnp/capnp-test.js"
+    "test": "node src/node-zap/zap-test.js"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/kentonv/node-capnp.git"
+    "url": "git://github.com/zap-proto/node-zap.git"
   },
   "engines": {
     "node": ">=10.0"
