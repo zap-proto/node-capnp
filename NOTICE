@@ -1,0 +1,11 @@
+node-capnp — part of the ZAP Protocol (github.com/zap-proto)
+
+This product includes software developed by the node-capnp project:
+  node-capnp — https://github.com/capnproto/node-capnp
+  Copyright (c) 2014 Kenton Varda <temporal@gmail.com> and contributors
+  Licensed under the BSD 2-Clause License (see LICENSE).
+
+ZAP is a derivative work: a brand-neutral fork of node-capnp exposing the ZAP
+serialization and capability RPC runtime to Node.js. The native addon links the
+upstream Cap'n Proto C++ library as its serialization/RPC engine.
+Modifications Copyright (c) 2025 Lux Industries Inc.
